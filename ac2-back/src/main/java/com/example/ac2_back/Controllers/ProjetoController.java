@@ -12,15 +12,23 @@ import com.example.ac2_back.dtos.DadosProjetoDTO;
 import com.example.ac2_back.dtos.ProjetoDTO;
 import com.example.ac2_back.services.ProjetoService;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/projetos")
 public class ProjetoController {
     
     private final ProjetoService projetoService;
     
-    // Injeção de dependência via construtor
     public ProjetoController(ProjetoService projetoService) {
         this.projetoService = projetoService;
+    }
+    
+    // Novo endpoint para listar todos os projetos
+    @GetMapping
+    public ResponseEntity<List<DadosProjetoDTO>> listarTodos() {
+        List<DadosProjetoDTO> projetos = projetoService.listarTodosProjetos();
+        return ResponseEntity.ok(projetos);
     }
     
     @PostMapping
