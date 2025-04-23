@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Projetos</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        colors: {
+          c1: '#F5F8FA',
+          c2: '#cacae4',
+          c3: '#707588',
+          c4: '#313339',
+          c5: '#1a1b1c',
+          success: '#10b981',
+          error: '#ef4444',
+          warning: '#f59e0b'
+        },
+        extend: {}
+      }
+    }
+  </script>
+</head>
+<body class="bg-c5 text-c1 min-h-screen flex justify-center items-start p-6 relative">
+  <!-- BACKGROUND EFFECT -->
+  <div class="absolute hidden md:flex justify-center | inset-0 z-0">
+    <div class="bg-c2 | absolute | w-48 h-48 top-10 left-1/4 | rounded-full opacity-30 blur-3xl"></div>
+    <div class="bg-c2 | absolute | w-56 h-56 top-1/2 right-8 | rounded-full opacity-30 blur-3xl"></div>
+    <div class="bg-c2 | absolute | w-64 h-64 bottom-10 left-1/3 | rounded-full opacity-30 blur-3xl"></div>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+    <div class="bg-c4 px-6 py-4 rounded-lg shadow-lg border-l-4 border-success flex items-center space-x-4">
+      <i id="toast-icon" class="fas fa-check-circle text-success"></i>
+      <div>
+        <p id="toast-message" class="font-medium">Operação realizada com sucesso!</p>
+      </div>
+      <button onclick="hideToast()" class="text-c2 hover:text-c1">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div>
+
+  <div class="w-full max-w-4xl space-y-8 z-10">
+    <h1 class="text-3xl font-bold text-c1 text-center border-b border-c3 pb-2">Controle de Projetos</h1>
+
+    <!-- LOADING SPINNER -->
+    <div id="loading" class="flex justify-center items-center hidden">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-c3"></div>
+    </div>
+
+    <!-- PROJECT LIST -->
+    <div class="bg-c4 p-6 rounded-xl shadow-md">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-2xl font-semibold">Projetos Cadastrados</h2>
+        <button onclick="carregarProjetos()" 
+          class="bg-c3 hover:bg-c2 text-c5 font-semibold px-4 py-2 rounded-md transition">
+          <i class="fas fa-sync-alt mr-2"></i>Atualizar
+        </button>
+      </div>
+      
+      <div id="empty-state" class="text-center py-8 hidden">
+        <i class="fas fa-folder-open text-4xl text-c3 mb-4"></i>
+        <p class="text-c2">Nenhum projeto cadastrado ainda</p>
+      </div>
+
+      <ul id="lista-projetos" class="space-y-4"></ul>
+    </div>
+
+    <!-- ADD PROJECT FORM -->
+    <div class="bg-c4 p-6 rounded-xl shadow-md">
+      <h2 class="text-2xl font-semibold mb-4">Adicionar Novo Projeto</h2>
+      <form id="form-projeto" class="space-y-4">
+        <div>
+          <label for="nome" class="block text-c2">Nome do Projeto:</label>
+          <input type="text" id="nome" name="nome" required
+            class="w-full px-4 py-2 rounded-md bg-c1 text-c5 focus:outline-none focus:ring-2 focus:ring-c3" />
+        </div>
+        
+        <div>
+          <label for="descricao" class="block text-c2">Descrição:</label>
+          <textarea id="descricao" name="descricao" rows="3"
+            class="w-full px-4 py-2 rounded-md bg-c1 text-c5 focus:outline-none focus:ring-2 focus:ring-c3"></textarea>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="dataInicio" class="block text-c2">Data de Início:</label>
+            <input type="date" id="dataInicio" name="dataInicio" required
+              class="w-full px-4 py-2 rounded-md bg-c1 text-c5 focus:outline-none focus:ring-2 focus:ring-c3" />
+          </div>
+          <div>
+            <label for="dataFim" class="block text-c2">Data de Fim (Opcional):</label>
+            <input type="date" id="dataFim" name="dataFim"
+              class="w-full px-4 py-2 rounded-md bg-c1 text-c5 focus:outline-none focus:ring-2 focus:ring-c3" />
+          </div>
+        </div>
+
+        <button type="submit"
+          class="w-full bg-c3 hover:bg-c2 hover:-translate-y-0.5 text-c5 font-semibold uppercase py-2 rounded-md transition transition-all ease-in-out duration-150">
+          <i class="fas fa-save mr-2"></i>Salvar Projeto
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- PROJECT DETAILS MODAL -->
+  <div id="modal-detalhes" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-c4 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-semibold">Detalhes do Projeto</h2>
+          <button onclick="closeModal()" class="text-c2 hover:text-c1 text-2xl">&times;</button>
+        </div>
+        
+        <div id="detalhes-projeto" class="space-y-4"></div>
+        
+        <div class="mt-6 flex justify-end space-x-3">
+          <button onclick="closeModal()"
+            class="px-4 py-2 rounded-md bg-c3 hover:bg-c2 text-c5 font-medium">
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:8080';
+    const listaProjetos = document.getElementById("lista-projetos");
+    const formProjeto = document.getElementById("form-projeto");
+    const loading = document.getElementById("loading");
+    const emptyState = document.getElementById("empty-state");
+    const toast = document.getElementById("toast");
+    const modalDetalhes = document.getElementById("modal-detalhes");
+    const detalhesProjeto = document.getElementById("detalhes-projeto");
+
+    // Format date to dd/mm/yyyy
+    function formatarData(dataString) {
+      if (!dataString) return '-';
+      const data = new Date(dataString);
+      return data.toLocaleDateString('pt-BR');
+    }
+
+    // Show notification toast
+    function showToast(message, type = 'success') {
+      const iconMap = {
+        success: 'fa-check-circle',
+        error: 'fa-times-circle',
+        warning: 'fa-exclamation-circle'
+      };
+      
+      toast.className = `fixed top-4 right-4 z-50 flex`;
+      toast.querySelector('#toast-icon').className = `fas ${iconMap[type]} text-${type}`;
+      toast.querySelector('#toast-message').textContent = message;
+      toast.querySelector('div').className = `bg-c4 px-6 py-4 rounded-lg shadow-lg border-l-4 border-${type} flex items-center space-x-4`;
+      
+      setTimeout(hideToast, 5000);
+    }
+
+    function hideToast() {
+      toast.classList.add('hidden');
+    }
+
+    function closeModal() {
+      modalDetalhes.classList.add('hidden');
+    }
+
+    // Load projects from API
+    // Load projects from API - Versão corrigida
+async function carregarProjetos() {
+  try {
+    loading.classList.remove('hidden');
+    listaProjetos.innerHTML = '';
+    emptyState.classList.add('hidden');
+    
+    console.log('Iniciando requisição para:', `${API_URL}/projetos`);
+    
+    const resposta = await fetch(`${API_URL}/projetos`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      mode: 'cors' // Importante para requisições entre origens diferentes
+    });
+
+    console.log('Resposta recebida. Status:', resposta.status);
+    
+    if (!resposta.ok) {
+      // Tenta extrair a mensagem de erro da resposta
+      let errorMsg = `Erro ${resposta.status}: ${resposta.statusText}`;
+      try {
+        const errorData = await resposta.json();
+        errorMsg = errorData.message || errorMsg;
+      } catch (e) {
+        console.warn('Não foi possível parsear resposta de erro:', e);
+      }
+      throw new Error(errorMsg);
+    }
+    
+    const projetos = await resposta.json();
+    console.log('Dados recebidos:', projetos);
+    
+    if (!Array.isArray(projetos)) {
+      throw new Error('Resposta da API não é um array de projetos');
+    }
+    
+    if (projetos.length === 0) {
+      emptyState.classList.remove('hidden');
+      showToast('Nenhum projeto encontrado', 'warning');
+      return;
+    }
+    
+    projetos.forEach(projeto => {
+      if (!projeto.id || !projeto.nome) {
+        console.warn('Projeto com estrutura inválida:', projeto);
+        return;
+      }
+      
+      const item = document.createElement("li");
+      item.className = "bg-c5 p-4 rounded-lg shadow-md hover:bg-opacity-80 transition";
+      item.innerHTML = `
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="text-xl font-semibold text-c1">${projeto.nome}</h3>
+            <p class="text-c2 text-sm mt-1">${projeto.descricao || 'Sem descrição'}</p>
+            <div class="flex items-center text-c3 text-xs mt-2 space-x-4">
+              <span><i class="far fa-calendar-alt mr-1"></i> ${formatarData(projeto.dataInicio)}</span>
+              ${projeto.dataFim ? `<span><i class="far fa-calendar-check mr-1"></i> ${formatarData(projeto.dataFim)}</span>` : ''}
+            </div>
+          </div>
+          <div class="flex space-x-2">
+            <button onclick="mostrarDetalhes(${projeto.id})" class="text-c2 hover:text-c1 p-2">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button onclick="confirmarExclusao(${projeto.id})" class="text-c2 hover:text-error p-2">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      listaProjetos.appendChild(item);
+    });
+    
+    showToast(`${projetos.length} projetos carregados com sucesso!`);
+  } catch (error) {
+    console.error('Erro ao carregar projetos:', error);
+    showToast(`Falha ao carregar projetos: ${error.message}`, 'error');
+    
+    // Mostra estado vazio mesmo em caso de erro
+    emptyState.classList.remove('hidden');
+    emptyState.innerHTML = `
+      <i class="fas fa-exclamation-triangle text-4xl text-error mb-4"></i>
+      <p class="text-c2">Erro ao carregar projetos</p>
+      <p class="text-c3 text-sm mt-2">${error.message}</p>
+    `;
+  } finally {
+    loading.classList.add('hidden');
+  }
+}
+
+    // Show project details
+    async function mostrarDetalhes(id) {
+      try {
+        const resposta = await fetch(`${API_URL}/projetos/${id}`);
+        
+        if (!resposta.ok) {
+          throw new Error('Erro ao carregar detalhes do projeto');
+        }
+        
+        const projeto = await resposta.json();
+        
+        let html = `
+          <div class="space-y-2">
+            <p><span class="font-semibold text-c2">ID:</span> ${projeto.id}</p>
+            <p><span class="font-semibold text-c2">Nome:</span> ${projeto.nome}</p>
+            <p><span class="font-semibold text-c2">Descrição:</span> ${projeto.descricao || '-'}</p>
+            <p><span class="font-semibold text-c2">Data Início:</span> ${formatarData(projeto.dataInicio)}</p>
+            <p><span class="font-semibold text-c2">Data Fim:</span> ${projeto.dataFim ? formatarData(projeto.dataFim) : '-'}</p>
+          </div>
+        `;
+        
+        if (projeto.funcionarios && projeto.funcionarios.length > 0) {
+          html += `
+            <div class="mt-6">
+              <h3 class="font-semibold text-lg border-b border-c3 pb-1 mb-3">Funcionários</h3>
+              <ul class="space-y-2">
+          `;
+          
+          projeto.funcionarios.forEach(funcionario => {
+            html += `
+              <li class="flex items-center space-x-3 bg-c5 bg-opacity-50 p-3 rounded-lg">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full bg-c3 flex items-center justify-center text-c5">
+                  ${funcionario.nome.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p class="font-medium">${funcionario.nome}</p>
+                  <p class="text-xs text-c2">${funcionario.cargo}</p>
+                </div>
+              </li>
+            `;
+          });
+          
+          html += `</ul></div>`;
+        } else {
+          html += `
+            <div class="mt-6 text-center py-4 bg-c5 bg-opacity-30 rounded-lg">
+              <i class="fas fa-users-slash text-2xl text-c3 mb-2"></i>
+              <p class="text-c2">Nenhum funcionário vinculado</p>
+            </div>
+          `;
+        }
+        
+        detalhesProjeto.innerHTML = html;
+        modalDetalhes.classList.remove('hidden');
+      } catch (error) {
+        console.error('Erro:', error);
+        showToast(error.message, 'error');
+      }
+    }
+
+    // Confirm project deletion
+    async function confirmarExclusao(id) {
+      if (confirm('Tem certeza que deseja excluir este projeto?')) {
+        try {
+          const resposta = await fetch(`${API_URL}/projetos/${id}`, {
+            method: 'DELETE'
+          });
+          
+          if (!resposta.ok) {
+            throw new Error('Erro ao excluir projeto');
+          }
+          
+          showToast('Projeto excluído com sucesso!');
+          carregarProjetos();
+        } catch (error) {
+          console.error('Erro:', error);
+          showToast(error.message, 'error');
+        }
+      }
+    }
+
+    // Add new project
+    formProjeto.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const projeto = {
+        nome: document.getElementById("nome").value,
+        descricao: document.getElementById("descricao").value,
+        dataInicio: document.getElementById("dataInicio").value,
+        dataFim: document.getElementById("dataFim").value || null
+      };
+
+      try {
+        const resposta = await fetch(`${API_URL}/projetos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(projeto)
+        });
+
+        if (!resposta.ok) {
+          throw new Error('Erro ao cadastrar projeto');
+        }
+
+        formProjeto.reset();
+        showToast('Projeto cadastrado com sucesso!');
+        carregarProjetos();
+      } catch (error) {
+        console.error('Erro:', error);
+        showToast(error.message, 'error');
+      }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', carregarProjetos);
+  </script>
+</body>
+</html>
